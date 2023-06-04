@@ -1,18 +1,21 @@
 package internal
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"sync"
 
+	wkhtmltopdf "github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"go.uber.org/zap"
 )
 
 const (
-	chromedpLib = "chromedp"
+	chromedpLib    = "chromedp"
+	wkhtmltopdfLib = "wkhtmltopdf"
 )
 
 // convert html from link to pdf depending on chosen library
@@ -23,6 +26,18 @@ func (is *InternalService) convert(library string, html []byte) (pdfLink string,
 		if err != nil {
 			return "", fmt.Errorf("convert - chromedpConvert - %w", err)
 		}
+
+		s3Link, err := is.s3Upload(file)
+		if err != nil {
+			return string(file), fmt.Errorf("convert - s3Upload - %w", err)
+		}
+		return s3Link, nil
+	case wkhtmltopdfLib:
+		file, err := is.wkhtmltopdfConvert(html)
+		if err != nil {
+			return "", fmt.Errorf("convert - wkhtmltopdfConvert - %w", err)
+		}
+
 		s3Link, err := is.s3Upload(file)
 		if err != nil {
 			return string(file), fmt.Errorf("convert - s3Upload - %w", err)
@@ -117,4 +132,42 @@ func actionLoadHTMLContent(data []byte) chromedp.ActionFunc {
 			return listenerCtx.Err()
 		}
 	}
+}
+
+func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err error) {
+
+	// Create new PDF generator
+	pdfg, err := wkhtmltopdf.NewPDFGenerator()
+	if err != nil {
+		return nil, err
+	}
+
+	// Set global options
+	pdfg.Dpi.Set(300)
+	pdfg.Orientation.Set(wkhtmltopdf.OrientationLandscape)
+	pdfg.Grayscale.Set(true)
+
+	// Create a new input page from an URL
+	page := wkhtmltopdf.NewPageReader(bytes.NewReader(data))
+
+	// Set options for this page
+	page.FooterRight.Set("[page]")
+	page.FooterFontSize.Set(10)
+	page.Zoom.Set(0.95)
+
+	// Add to document
+	pdfg.AddPage(page)
+
+	// Create PDF document in internal buffer
+	err = pdfg.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	// Write buffer contents to file on disk
+	err = pdfg.WriteFile("simplesample.pdf")
+	if err != nil {
+		return nil, err
+	}
+	return pdfg.Bytes(), nil
 }

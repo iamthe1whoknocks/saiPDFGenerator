@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/SebastiaanKlippert/go-wkhtmltopdf v1.9.0
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
