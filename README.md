@@ -7,10 +7,11 @@
 curl --location --request GET 'http://localhost:8080' \
 &emsp;    --header 'Token: SomeToken' \
 &emsp;    --header 'Content-Type: application/json' \
-&emsp;    --data-raw '{"method":"getPDF","data":{"link":"https://github.com/aws/aws-sdk-go/","library":"chromedp"}}'
+&emsp;    --data-raw '{"method":"getPDF","data":{"html":"$base64 encoded byte array","library":"$lib to use to generate pdf"}}'
 
-- response: {"link":"https://link_to_download_pdf.com"} 
+- response: {"link":"$link_to_download_pdf.com"} 
 // link to download generated pdf file
   
 
-
+- response: {"response":"$raw byte array"} 
+// raw byte array
