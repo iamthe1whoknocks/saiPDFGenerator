@@ -1,7 +1,6 @@
 # saiPDFGenerator
 
 ### API
-#### Contract command
 - request:
 
 curl --location --request GET 'http://localhost:8080' \
@@ -15,3 +14,7 @@ curl --location --request GET 'http://localhost:8080' \
 
 - response: {"response":"$raw byte array"} 
 // raw byte array
+
+## available libraries
+`wkhtmltopdf`
+`chromedp`
