@@ -19,7 +19,8 @@ const (
 )
 
 // convert html from link to pdf depending on chosen library
-func (is *InternalService) convert(library string, html []byte) (pdfLink string, err error) {
+func (is *InternalService) convert(library string, html []byte) (result interface{}, err error) {
+loop:
 	switch library {
 	case chromedpLib:
 		file, err := is.chromedpConvert(html)
@@ -27,9 +28,14 @@ func (is *InternalService) convert(library string, html []byte) (pdfLink string,
 			return "", fmt.Errorf("convert - chromedpConvert - %w", err)
 		}
 
+		// save file to check without s3
+		// if err := ioutil.WriteFile("chromedp.pdf", file, 0644); err != nil {
+		// 	return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
+		// }
+
 		s3Link, err := is.s3Upload(file)
 		if err != nil {
-			return string(file), fmt.Errorf("convert - s3Upload - %w", err)
+			return file, fmt.Errorf("convert - s3Upload - %w", err)
 		}
 		return s3Link, nil
 	case wkhtmltopdfLib:
@@ -37,25 +43,22 @@ func (is *InternalService) convert(library string, html []byte) (pdfLink string,
 		if err != nil {
 			return "", fmt.Errorf("convert - wkhtmltopdfConvert - %w", err)
 		}
+		// save file to check without s3
+		// if err := ioutil.WriteFile("wkhtmltopdf.pdf", file, 0644); err != nil {
+		// 	return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
+		// }
 
 		s3Link, err := is.s3Upload(file)
 		if err != nil {
-			return string(file), fmt.Errorf("convert - s3Upload - %w", err)
+			return file, fmt.Errorf("convert - s3Upload - %w", err)
 		}
 		return s3Link, nil
 
 	default:
-		file, err := is.chromedpConvert(html)
-		if err != nil {
-			return "", fmt.Errorf("convert - chromedpConvert - %w", err)
-		}
-		s3Link, err := is.s3Upload(file)
-		if err != nil {
-			return string(file), fmt.Errorf("convert - s3Upload - %w", err)
-		}
-		return s3Link, nil
+		is.Logger.Debug("handlers - convert - unknown library - go to default library", zap.String("default library", is.Context.GetConfig("specific.default_convert_library", "chromedp").(string)))
+		library = is.Context.GetConfig("specific.default_convert_library", "chromedp").(string)
+		goto loop
 	}
-
 }
 
 // convert html into pdf using chromedp
@@ -145,7 +148,7 @@ func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err e
 	// Set global options
 	pdfg.Dpi.Set(300)
 	pdfg.Orientation.Set(wkhtmltopdf.OrientationLandscape)
-	pdfg.Grayscale.Set(true)
+	pdfg.Grayscale.Set(false)
 
 	// Create a new input page from an URL
 	page := wkhtmltopdf.NewPageReader(bytes.NewReader(data))
@@ -164,10 +167,5 @@ func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err e
 		return nil, err
 	}
 
-	// Write buffer contents to file on disk
-	err = pdfg.WriteFile("simplesample.pdf")
-	if err != nil {
-		return nil, err
-	}
 	return pdfg.Bytes(), nil
 }

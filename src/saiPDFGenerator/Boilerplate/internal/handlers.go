@@ -52,17 +52,28 @@ func (is *InternalService) NewHandler() saiService.Handler {
 					return nil, 400, err
 				}
 
-				result, err := is.convert(m["library"].(string), htmlData[:n])
+				var library string
+				val, ok := m["library"]
+				if ok {
+					library, ok = val.(string)
+					if !ok {
+						library = ""
+					}
+				} else {
+					library = ""
+				}
+
+				result, err := is.convert(library, htmlData[:n])
 				if err != nil {
 					// means that it was s3 error, send html to output
 					// todo: error typing
 					if strings.Contains(err.Error(), "s3Upload") {
-						return result, 200, nil
+						return result.([]byte), 200, nil
 					}
 					is.Logger.Error("handlers - getPDF - convert", zap.Error(err))
 					return nil, 400, err
 				}
-				return result, 200, nil
+				return result.(string), 200, nil
 
 			},
 		},
