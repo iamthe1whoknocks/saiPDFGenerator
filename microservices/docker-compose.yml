@@ -1,8 +1,8 @@
 version: '3'
 services:
-  sai-pdfgenerator:
+  pdf-generator:
     build:
-      context: ./saiPDFGenerator
+      context: pdf-generator
       dockerfile: Dockerfile
     ports:
       - "8081:8081"

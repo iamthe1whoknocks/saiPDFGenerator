@@ -9,8 +9,8 @@ build:
 	make docker
 
 service:
-		cd ./src/saiPDFGenerator/Boilerplate && go mod tidy && go build -o ./../../../microservices/saiPDFGenerator/build/sai-pdfgenerator
-		cp ./src/saiPDFGenerator/Boilerplate/config.yml ./microservices/saiPDFGenerator/build/config.yml
+		cd ./src/pdf-generator && go mod tidy && go build -o ../../microservices/pdf-generator/build/pdf-generator
+		cp ./src/pdf-generator/config.yml ./microservices/pdf-generator/build/config.yml
 
 docker:
 	docker-compose -f ./microservices/docker-compose.yml up -d --build
@@ -19,4 +19,4 @@ log:
 	docker-compose -f ./microservices/docker-compose.yml logs -f
 
 logp:
-	docker-compose -f ./microservices/docker-compose.yml logs -f sai-pdfgenerator
+	docker-compose -f ./microservices/docker-compose.yml logs -f pdf-generator
