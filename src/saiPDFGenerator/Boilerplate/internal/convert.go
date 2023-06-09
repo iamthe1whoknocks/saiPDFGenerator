@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"sync"
+	"time"
 
 	wkhtmltopdf "github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/chromedp/cdproto/page"
@@ -23,30 +26,36 @@ func (is *InternalService) convert(library string, html []byte) (result interfac
 loop:
 	switch library {
 	case chromedpLib:
-		file, err := is.chromedpConvert(html)
+		data, err := ChromedpConvert(html)
 		if err != nil {
 			return "", fmt.Errorf("convert - chromedpConvert - %w", err)
 		}
 
-		// save file to check without s3
-		// if err := ioutil.WriteFile("chromedp.pdf", file, 0644); err != nil {
-		// 	return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
-		// }
+		//save file to check without s3
+		filename := fmt.Sprintf("%s_%s.pdf", chromedpLib, string(time.Now().Unix()))
+		if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+			return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
+		}
 
-		s3Link, err := is.s3Upload(file)
+		file, err := os.OpenFile(filename, os.O_RDONLY, 0444)
+		if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+			return "", fmt.Errorf("convert - chromedpConvert - openfile - %w", err)
+		}
+
+		s3Link, err := is.s3Upload(data)
 		if err != nil {
 			return file, fmt.Errorf("convert - s3Upload - %w", err)
 		}
 		return s3Link, nil
 	case wkhtmltopdfLib:
-		file, err := is.wkhtmltopdfConvert(html)
+		file, err := WkhtmltopdfConvert(html)
 		if err != nil {
 			return "", fmt.Errorf("convert - wkhtmltopdfConvert - %w", err)
 		}
 		// save file to check without s3
-		// if err := ioutil.WriteFile("wkhtmltopdf.pdf", file, 0644); err != nil {
-		// 	return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
-		// }
+		if err := ioutil.WriteFile("wkhtmltopdf.pdf", file, 0644); err != nil {
+			return "", fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
+		}
 
 		s3Link, err := is.s3Upload(file)
 		if err != nil {
@@ -62,7 +71,7 @@ loop:
 }
 
 // convert html into pdf using chromedp
-func (is *InternalService) chromedpConvert(html []byte) (fileData []byte, err error) {
+func ChromedpConvert(html []byte) (fileData []byte, err error) {
 	taskCtx, cancel := chromedp.NewContext(
 		context.Background(),
 		chromedp.WithLogf(log.Printf),
@@ -70,7 +79,7 @@ func (is *InternalService) chromedpConvert(html []byte) (fileData []byte, err er
 	defer cancel()
 	var pdfBuffer []byte
 	if err := chromedp.Run(taskCtx, pdfGrabberFromFile(html, "body", &pdfBuffer)); err != nil {
-		is.Logger.Error("handlers - chromedpConvert - chromedp.Run", zap.Error(err))
+		err := fmt.Errorf("convert - chromedpConvert - chromedp.Run - %w", err)
 		return nil, err
 	}
 
@@ -137,12 +146,12 @@ func actionLoadHTMLContent(data []byte) chromedp.ActionFunc {
 	}
 }
 
-func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err error) {
+func WkhtmltopdfConvert(data []byte) (output []byte, err error) {
 
 	// Create new PDF generator
 	pdfg, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("convert - wkhtmltopdf - NewPDFGenerator - %w", err)
 	}
 
 	// Set global options
@@ -164,7 +173,7 @@ func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err e
 	// Create PDF document in internal buffer
 	err = pdfg.Create()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("convert - wkhtmltopdf - pdfg.Create - %w", err)
 	}
 
 	return pdfg.Bytes(), nil
