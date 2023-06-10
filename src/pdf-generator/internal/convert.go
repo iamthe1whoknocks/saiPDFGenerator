@@ -170,6 +170,8 @@ func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err e
 	_page.FooterFontSize.Set(10)
 	_page.Zoom.Set(0.95)
 
+	_page.EnableLocalFileAccess.Set(true)
+
 	// Add to document
 	pdfg.AddPage(_page)
 
