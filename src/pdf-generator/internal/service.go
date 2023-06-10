@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	"strconv"
 
 	"github.com/Limpid-LLC/saiService"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,11 +16,25 @@ type InternalService struct {
 	Context   *saiService.Context
 	Logger    *zap.Logger
 	AwsConfig *aws.Config
+	FileNum   int
 }
 
 func (is *InternalService) Init() {
 	is.SetLogger()
 	is.awsConfig()
+
+	fileNum := is.Context.GetConfig("file_num", 50).(int)
+
+	fileserverPort := is.Context.GetConfig("common.http.fileserver_port", "8083").(int)
+
+	fileserverHandler := http.FileServer(http.Dir("./files"))
+	fsMux := http.NewServeMux()
+	fsMux.Handle("/", fileserverHandler)
+
+	is.Logger.Debug("Fileserver started", zap.String("directory", "files"), zap.Int("port", fileserverPort), zap.Int("file slots", fileNum))
+
+	go http.ListenAndServe(fmt.Sprintf(":%s", strconv.Itoa(fileserverPort)), fsMux)
+
 }
 
 // SetLogger set service logger

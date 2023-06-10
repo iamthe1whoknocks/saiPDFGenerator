@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strconv"
 	"sync"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
@@ -25,6 +26,10 @@ type Response struct {
 	Result string `json:"result"`
 	Status string `json:"status"`
 }
+
+var (
+	fileNum = 1
+)
 
 // convert html from link to pdf depending on chosen library
 func (is *InternalService) convert(library string, html []byte, output string) (result interface{}, err error) {
@@ -52,10 +57,19 @@ func (is *InternalService) convert(library string, html []byte, output string) (
 		return Response{Result: s3Link, Status: "OK"}, nil
 	default:
 		// save file to check without s3
-		if err := ioutil.WriteFile("file.pdf", file, 0644); err != nil {
-			return nil, fmt.Errorf("convert - chromedpConvert - ioutil.WriteFile - %w", err)
+		if fileNum == 100 {
+			fileNum = 1
 		}
-		return Response{Result: string(file), Status: "OK"}, nil
+		filename := fmt.Sprintf("%s_%s.pdf", "file", strconv.Itoa(fileNum))
+		if err := ioutil.WriteFile("files/"+filename, file, 0644); err != nil {
+			return nil, fmt.Errorf("convert - file output - ioutil.WriteFile - %w", err)
+		}
+		host := is.Context.GetConfig("common.http.host", "localhost").(string)
+		port := is.Context.GetConfig("common.http.fileserver_port", 8085).(int)
+
+		path := fmt.Sprintf("http://%s:%s/%s", host, strconv.Itoa(port), filename)
+		fileNum++
+		return Response{Result: path, Status: "OK"}, nil
 	}
 }
 
