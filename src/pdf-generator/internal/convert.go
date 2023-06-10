@@ -159,7 +159,7 @@ func (is *InternalService) wkhtmltopdfConvert(data []byte) (output []byte, err e
 
 	// Set global options
 	pdfg.Dpi.Set(300)
-	pdfg.Orientation.Set(wkhtmltopdf.OrientationLandscape)
+	pdfg.Orientation.Set(wkhtmltopdf.OrientationPortrait)
 	pdfg.Grayscale.Set(false)
 
 	// Create a new input page from an URL
