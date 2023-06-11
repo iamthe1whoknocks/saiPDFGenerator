@@ -16,7 +16,7 @@ type InternalService struct {
 	Context   *saiService.Context
 	Logger    *zap.Logger
 	AwsConfig *aws.Config
-	FileNum   int
+	FileNum   int //file slots from config
 }
 
 func (is *InternalService) Init() {
@@ -24,6 +24,7 @@ func (is *InternalService) Init() {
 	is.awsConfig()
 
 	fileNum := is.Context.GetConfig("file_num", 50).(int)
+	is.FileNum = fileNum
 
 	fileserverPort := is.Context.GetConfig("common.http.fileserver_port", "8083").(int)
 

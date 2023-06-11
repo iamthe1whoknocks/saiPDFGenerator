@@ -57,7 +57,7 @@ func (is *InternalService) convert(library string, html []byte, output string) (
 		return Response{Result: s3Link, Status: "OK"}, nil
 	default:
 		// save file to check without s3
-		if fileNum == 100 {
+		if fileNum > is.FileNum {
 			fileNum = 1
 		}
 		filename := fmt.Sprintf("%s_%s.pdf", "file", strconv.Itoa(fileNum))

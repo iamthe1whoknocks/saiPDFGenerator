@@ -16,5 +16,5 @@ aws:
   bucket: ""
 default_convert_library: "chromedp"
 default_convert_output: "file"
-file_num: 100
+file_num: 3
 
