@@ -2,14 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-
 	"github.com/Limpid-LLC/saiService"
 	"github.com/aws/aws-sdk-go/aws"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 type InternalService struct {
@@ -23,19 +22,20 @@ func (is *InternalService) Init() {
 	is.SetLogger()
 	is.awsConfig()
 
-	fileNum := is.Context.GetConfig("file_num", 50).(int)
-	is.FileNum = fileNum
+	if is.Context.GetConfig("file_server.enabled", false).(bool) {
+		fileNum := is.Context.GetConfig("file_num", 50).(int)
+		is.FileNum = fileNum
 
-	fileserverPort := is.Context.GetConfig("common.http.fileserver_port", "8083").(int)
+		fileServerPort := is.Context.GetConfig("file_server.port", "8083").(int)
+		fileServerHandler := http.FileServer(http.Dir("./files"))
+		fsMux := http.NewServeMux()
+		fsMux.Handle("/", fileServerHandler)
 
-	fileserverHandler := http.FileServer(http.Dir("./files"))
-	fsMux := http.NewServeMux()
-	fsMux.Handle("/", fileserverHandler)
-
-	is.Logger.Debug("Fileserver started", zap.String("directory", "files"), zap.Int("port", fileserverPort), zap.Int("file slots", fileNum))
-
-	go http.ListenAndServe(fmt.Sprintf(":%s", strconv.Itoa(fileserverPort)), fsMux)
-
+		go func() {
+			is.Logger.Debug("FileServer started", zap.String("directory", "files"), zap.Int("port", fileServerPort), zap.Int("file slots", fileNum))
+			log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", strconv.Itoa(fileServerPort)), fsMux))
+		}()
+	}
 }
 
 // SetLogger set service logger

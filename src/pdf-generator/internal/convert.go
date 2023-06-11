@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -64,8 +65,13 @@ func (is *InternalService) convert(library string, html []byte, output string) (
 		if err := ioutil.WriteFile("files/"+filename, file, 0644); err != nil {
 			return nil, fmt.Errorf("convert - file output - ioutil.WriteFile - %w", err)
 		}
-		host := is.Context.GetConfig("common.http.host", "localhost").(string)
-		port := is.Context.GetConfig("common.http.fileserver_port", 8085).(int)
+
+		if !is.Context.GetConfig("file_server.enabled", false).(bool) {
+			return nil, errors.New("convert - file output - file server should be anabled in the config.yml")
+		}
+
+		host := is.Context.GetConfig("file_server.host", "localhost").(string)
+		port := is.Context.GetConfig("file_server.port", 8083).(int)
 
 		path := fmt.Sprintf("http://%s:%s/%s", host, strconv.Itoa(port), filename)
 		fileNum++

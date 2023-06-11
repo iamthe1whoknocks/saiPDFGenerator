@@ -3,11 +3,13 @@ common:
     host: "localhost"
     enabled: true
     port: 8081
-    fileserver_port: 8083
   ws:
     enabled: true
     port: 8082
   log_mode: "debug"
+file_server:
+  enabled: true
+  port: 8083
 aws:
   region: "region"
   key_id: "keyID"
@@ -16,5 +18,4 @@ aws:
   bucket: ""
 default_convert_library: "chromedp"
 default_convert_output: "file"
-file_num: 100
-
+file_num: 3
